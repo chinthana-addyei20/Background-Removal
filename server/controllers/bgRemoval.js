@@ -4,31 +4,35 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import axios from 'axios'
+import crypto from 'crypto'
+import { saveRecord } from '../utils/storage.js'
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Helper to read file as base64 data URL
-const fileToDataURL = (filePath, mime = 'image/png') => {
-  const b = fs.readFileSync(filePath)
-  return `data:${mime};base64,${b.toString('base64')}`
+// Ensure uploads dir exists
+const ensureUploadsDir = () => {
+  const uploadDir = path.join(__dirname, '..', 'uploads')
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
+  return uploadDir
 }
 
 // Process the image and remove background
 export const removeBackground = async (req, res) => {
   try {
     const { imageUrl } = req.body
-
-    // Create output directory if it doesn't exist
-    const outputDir = path.join(__dirname, '..', 'uploads')
-    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true })
+    const uploadDir = ensureUploadsDir()
 
     // If an uploaded file is present (multer), prefer that
     if (req.file) {
       const uploadedPath = req.file.path
-      const outputPath = path.join(outputDir, `${Date.now()}_no_bg.png`)
+      const ext = path.extname(req.file.originalname) || '.png'
+      const processedFilename = `${Date.now()}_${crypto.randomUUID()}${ext}`
+      const processedPath = path.join(uploadDir, processedFilename)
+
+      let fallback = false
 
       // If API key is available, try to use remove.bg on the local file
       if (process.env.REMOVE_BG_API_KEY && process.env.REMOVE_BG_API_KEY !== 'your-remove-bg-api-key-here') {
@@ -38,51 +42,80 @@ export const removeBackground = async (req, res) => {
             apiKey: process.env.REMOVE_BG_API_KEY,
             size: 'regular',
             type: 'auto',
-            outputFile: outputPath
+            outputFile: processedPath
           })
-
-          const processedImageBase64 = fs.readFileSync(outputPath, 'base64')
-          // Cleanup
-          fs.unlinkSync(outputPath)
-          fs.unlinkSync(uploadedPath)
-
-          return res.json({ success: true, processedImage: `data:image/png;base64,${processedImageBase64}` })
         } catch (err) {
-          console.warn('remove.bg file API failed, falling back to returning the uploaded file:', err?.message || err)
-          // fall through to return uploaded file as-is
+          console.warn('remove.bg file API failed, falling back to keeping uploaded file:', err?.message || err)
+          // fallback to using the uploaded file as-is
+          fs.renameSync(uploadedPath, processedPath)
+          fallback = true
         }
+      } else {
+        // No API key; just keep the uploaded file
+        fs.renameSync(uploadedPath, processedPath)
+        fallback = true
       }
 
-      // Fallback: return original uploaded file as base64 so frontend can continue testing
-      const dataUrl = fileToDataURL(uploadedPath, req.file.mimetype || 'image/png')
-      // remove the uploaded file
-      fs.unlinkSync(uploadedPath)
-      return res.json({ success: true, processedImage: dataUrl, fallback: true })
+      const record = {
+        id: crypto.randomUUID(),
+        originalName: req.file.originalname,
+        processedFilename,
+        url: `/uploads/${processedFilename}`,
+        createdAt: new Date().toISOString(),
+        fallback
+      }
+
+      saveRecord(record)
+
+      return res.json({ success: true, record })
     }
 
     // Otherwise, if an imageUrl is provided, try to process it
     if (imageUrl) {
-      const outputPath = path.join(outputDir, `${Date.now()}_no_bg.png`)
+      // download image to temp
+      const tempFilename = `${Date.now()}_${crypto.randomUUID()}.tmp`
+      const tempPath = path.join(ensureUploadsDir(), tempFilename)
+      const resp = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      fs.writeFileSync(tempPath, resp.data)
+
+      const ext = path.extname(new URL(imageUrl).pathname) || '.png'
+      const processedFilename = `${Date.now()}_${crypto.randomUUID()}${ext}`
+      const processedPath = path.join(ensureUploadsDir(), processedFilename)
+
+      let fallback = false
 
       if (process.env.REMOVE_BG_API_KEY && process.env.REMOVE_BG_API_KEY !== 'your-remove-bg-api-key-here') {
-        // Use remove.bg URL API
-        await removeBackgroundFromImageUrl({
-          url: imageUrl,
-          apiKey: process.env.REMOVE_BG_API_KEY,
-          size: 'regular',
-          type: 'auto',
-          outputFile: outputPath
-        })
-
-        const processedImageBase64 = fs.readFileSync(outputPath, 'base64')
-        fs.unlinkSync(outputPath)
-        return res.json({ success: true, processedImage: `data:image/png;base64,${processedImageBase64}` })
+        try {
+          await removeBackgroundFromImageUrl({
+            url: imageUrl,
+            apiKey: process.env.REMOVE_BG_API_KEY,
+            size: 'regular',
+            type: 'auto',
+            outputFile: processedPath
+          })
+        } catch (err) {
+          console.warn('remove.bg URL API failed, falling back to saving original image:', err?.message || err)
+          fs.renameSync(tempPath, processedPath)
+          fallback = true
+        }
+      } else {
+        // No API key: just save original image
+        fs.renameSync(tempPath, processedPath)
+        fallback = true
       }
 
-      // Fallback: fetch the image and return it as-is
-      const resp = await axios.get(imageUrl, { responseType: 'arraybuffer' })
-      const b64 = Buffer.from(resp.data).toString('base64')
-      return res.json({ success: true, processedImage: `data:${resp.headers['content-type']};base64,${b64}`, fallback: true })
+      const record = {
+        id: crypto.randomUUID(),
+        originalName: imageUrl,
+        processedFilename,
+        url: `/uploads/${processedFilename}`,
+        createdAt: new Date().toISOString(),
+        fallback
+      }
+
+      saveRecord(record)
+
+      return res.json({ success: true, record })
     }
 
     return res.status(400).json({ error: 'No image provided (file or imageUrl)' })
