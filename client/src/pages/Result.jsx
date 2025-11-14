@@ -1,9 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { assets } from '../assets/assets'
+import { useLocation } from 'react-router-dom'
 
 const Result = () => {
   const [originalImage, setOriginalImage] = useState(assets.image_w_bg)
   const [bgRemovedImage, setBgRemovedImage] = useState(assets.image_wo_bg)
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.state && location.state.imageUrl) {
+      setBgRemovedImage(location.state.imageUrl)
+    }
+  }, [location.state])
 
   // Open file explorer to pick a new original image
   const handleTryAnother = () => {

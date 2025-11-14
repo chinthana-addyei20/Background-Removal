@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "id": "5d2cda8e-8e30-41de-b91d-6df4f04bfe9a",
+    "originalName": "test_upload.png",
+    "processedFilename": "1763133756695_2d0b0b97-7e44-43f1-b4b9-af4302e90980.png",
+    "url": "/uploads/1763133756695_2d0b0b97-7e44-43f1-b4b9-af4302e90980.png",
+    "createdAt": "2025-11-14T15:22:36.697Z",
+    "fallback": true
+  },
+  {
+    "id": "0ae8b57d-4103-4e71-af48-9b9106f3dfdd",
+    "originalName": "WhatsApp Image 2025-10-20 at 08.37.33_283133eb.jpg",
+    "processedFilename": "1763134105320_f7c4ee87-aad7-4b03-ac6c-30d07165ba0d.jpg",
+    "url": "/uploads/1763134105320_f7c4ee87-aad7-4b03-ac6c-30d07165ba0d.jpg",
+    "createdAt": "2025-11-14T15:28:25.323Z",
+    "fallback": true
+  },
+  {
+    "id": "1551150a-7f60-430e-b9ed-943b90e0eaf7",
+    "originalName": "WhatsApp Image 2025-10-20 at 08.37.33_283133eb.jpg",
+    "processedFilename": "1763134562514_f692d0db-fd9e-4f52-8d9d-bac01d24f4fe.jpg",
+    "url": "/uploads/1763134562514_f692d0db-fd9e-4f52-8d9d-bac01d24f4fe.jpg",
+    "createdAt": "2025-11-14T15:36:02.517Z",
+    "fallback": true
+  },
+  {
+    "id": "909c8a9c-fc77-4d8b-9004-206f8479aaba",
+    "originalName": "test_upload.png",
+    "processedFilename": "1763134793904_76066c00-7af0-41dc-9403-a4cf76160501.png",
+    "url": "/uploads/1763134793904_76066c00-7af0-41dc-9403-a4cf76160501.png",
+    "createdAt": "2025-11-14T15:39:53.906Z",
+    "fallback": true
+  },
+  {
+    "id": "c731f196-bcbf-4a05-a034-d65bd9224c32",
+    "originalName": "WhatsApp Image 2025-10-20 at 08.37.33_283133eb.jpg",
+    "processedFilename": "1763134973680_ce7d1e6e-9b1b-426a-87e5-fee8449af1d8.jpg",
+    "url": "/uploads/1763134973680_ce7d1e6e-9b1b-426a-87e5-fee8449af1d8.jpg",
+    "createdAt": "2025-11-14T15:42:53.681Z",
+    "fallback": true
+  }
+]
